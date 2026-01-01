@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Snippet Manager</title>
+  <style>
+    :root {
+      --bg: #f6efe7;
+      --bg-2: #f2dcc2;
+      --card: #fffaf4;
+      --ink: #1d1914;
+      --muted: #6f6458;
+      --accent: #c85a1a;
+      --accent-2: #0f6b4f;
+      --stroke: #e6d4c2;
+      --shadow: 0 16px 40px rgba(29, 25, 20, 0.18);
+      --radius: 16px;
+      --radius-sm: 12px;
+      --font-display: "Baskerville", "Palatino Linotype", "Book Antiqua", serif;
+      --font-body: "Avenir Next", "Gill Sans", "Trebuchet MS", "Helvetica", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 420px;
+      min-width: 420px;
+      margin: 0;
+      background: radial-gradient(120% 120% at 10% 0%, #fdf7f0 0%, var(--bg) 45%, #efe2d4 100%);
+      color: var(--ink);
+      font-family: var(--font-body);
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      filter: blur(0);
+      opacity: 0.35;
+      z-index: 0;
+    }
+
+    body::before {
+      background: radial-gradient(circle, rgba(200, 90, 26, 0.4), transparent 70%);
+      top: -60px;
+      right: -60px;
+    }
+
+    body::after {
+      background: radial-gradient(circle, rgba(15, 107, 79, 0.4), transparent 70%);
+      bottom: -80px;
+      left: -80px;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      padding: 16px 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: appIn 320ms ease-out;
+    }
+
+    @keyframes appIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--accent), #f1b07f);
+      color: #fff7f0;
+      font-weight: 700;
+      font-size: 18px;
+      box-shadow: 0 8px 20px rgba(200, 90, 26, 0.35);
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-size: 20px;
+      letter-spacing: 0.2px;
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    #clear-all {
+      min-width: calc(12ch + 24px);
+      text-align: center;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .storage-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .storage-label {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    progress {
+      width: 100%;
+      height: 10px;
+      border: none;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #f0e4d9;
+    }
+
+    progress::-webkit-progress-bar {
+      background: #f0e4d9;
+      border-radius: 999px;
+    }
+
+    progress::-webkit-progress-value {
+      background: linear-gradient(90deg, var(--accent), #f1b07f);
+      border-radius: 999px;
+    }
+
+    progress::-moz-progress-bar {
+      background: linear-gradient(90deg, var(--accent), #f1b07f);
+      border-radius: 999px;
+    }
+
+    .search-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+      background: #f3e5d8;
+      padding: 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(230, 212, 194, 0.8);
+    }
+
+    .tab-button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      font-family: var(--font-body);
+      cursor: pointer;
+      background: transparent;
+      color: var(--muted);
+      transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .tab-button.active {
+      background: linear-gradient(135deg, #fffaf4, #f8dcc2);
+      color: var(--ink);
+      box-shadow: 0 6px 14px rgba(29, 25, 20, 0.12);
+    }
+
+    .tab-button:focus-visible {
+      outline: 2px solid rgba(200, 90, 26, 0.6);
+      outline-offset: 2px;
+    }
+
+    .tab-count {
+      display: inline-flex;
+      min-width: 22px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(200, 90, 26, 0.14);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .search-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    #search-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: #fffdfb;
+      font-size: 14px;
+      font-family: var(--font-body);
+      color: var(--ink);
+      transition: border 180ms ease, box-shadow 180ms ease;
+    }
+
+    #search-input:focus {
+      outline: none;
+      border-color: rgba(200, 90, 26, 0.6);
+      box-shadow: 0 0 0 3px rgba(200, 90, 26, 0.18);
+    }
+
+    #search-status {
+      font-size: 12px;
+      min-height: 16px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 107, 79, 0.08);
+      color: var(--accent-2);
+      width: fit-content;
+      max-width: 100%;
+      transition: opacity 180ms ease;
+    }
+
+    #search-status:empty {
+      opacity: 0;
+    }
+
+    #search-status[data-state="loading"] {
+      background: rgba(200, 90, 26, 0.12);
+      color: var(--accent);
+    }
+
+    #search-status[data-state="error"] {
+      background: rgba(176, 0, 32, 0.1);
+      color: #b00020;
+    }
+
+    .snippets-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .snippets-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+    }
+
+    #snippets-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    #snippets-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #snippets-list::-webkit-scrollbar-thumb {
+      background: rgba(111, 100, 88, 0.35);
+      border-radius: 999px;
+    }
+
+    .snippet {
+      border: 1px solid rgba(230, 212, 194, 0.9);
+      border-radius: var(--radius-sm);
+      padding: 12px 12px 10px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 8px 16px rgba(29, 25, 20, 0.08);
+      animation: riseIn 360ms ease-out both;
+      animation-delay: var(--delay, 0ms);
+    }
+
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .snippet-text {
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--ink);
+      word-wrap: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .snippet-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .snippet-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(200, 90, 26, 0.1);
+      color: var(--accent);
+    }
+
+    .snippet-badge--sync {
+      background: rgba(15, 107, 79, 0.12);
+      color: var(--accent-2);
+    }
+
+    .snippet-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 12px rgba(29, 25, 20, 0.15);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid rgba(200, 90, 26, 0.5);
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #f1b07f);
+      color: #fffaf4;
+    }
+
+    .btn-danger {
+      background: #f6e1dd;
+      color: #7a2216;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--stroke);
+    }
+
+    .btn-add {
+      padding: 8px 14px;
+    }
+
+    .btn-move {
+      background: #f8efe6;
+      color: #5b3f28;
+      border: 1px solid rgba(200, 90, 26, 0.2);
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      padding: 6px 12px;
+    }
+
+    .empty-state {
+      border: 1px dashed rgba(200, 90, 26, 0.35);
+      border-radius: var(--radius-sm);
+      padding: 18px 14px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255, 250, 244, 0.7);
+    }
+
+    .add-panel {
+      display: grid;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .add-panel[hidden] {
+      display: none;
+    }
+
+    .add-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .add-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+    }
+
+    .add-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .add-toggle {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .toggle-button {
+      border: 1px solid rgba(230, 212, 194, 0.9);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: #fffdfb;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .toggle-button.active {
+      background: linear-gradient(135deg, #fffaf4, #f8dcc2);
+      color: var(--ink);
+      box-shadow: 0 6px 14px rgba(29, 25, 20, 0.12);
+    }
+
+    .toggle-button:focus-visible {
+      outline: 2px solid rgba(200, 90, 26, 0.5);
+      outline-offset: 2px;
+    }
+
+    #add-input {
+      width: 100%;
+      min-height: 90px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: #fffdfb;
+      font-size: 13px;
+      font-family: var(--font-body);
+      color: var(--ink);
+      resize: vertical;
+    }
+
+    #add-input:focus {
+      outline: none;
+      border-color: rgba(200, 90, 26, 0.6);
+      box-shadow: 0 0 0 3px rgba(200, 90, 26, 0.18);
+    }
+
+    .add-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-mark">S</div>
+        <div>
+          <div class="brand-title">Snippet Vault</div>
+          <div class="brand-subtitle">Collect highlights in one click</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="add-snippet" class="btn btn-primary btn-add">+ Add</button>
+        <button type="button" id="clear-all" class="btn btn-ghost">Clear all</button>
+      </div>
+    </header>
+
+    <section class="panel add-panel" id="add-panel" hidden>
+      <div class="add-header">
+        <div class="add-title">Add snippet</div>
+        <div class="add-subtitle" id="add-target-label">Saving to Local</div>
+      </div>
+      <div class="add-toggle" role="group" aria-label="Add snippet storage">
+        <button type="button" class="toggle-button" id="add-area-local" data-area="local">Local</button>
+        <button type="button" class="toggle-button" id="add-area-sync" data-area="sync">Synced</button>
+      </div>
+      <textarea id="add-input" placeholder="Paste or type a snippet..." aria-label="Snippet text"></textarea>
+      <div class="add-actions">
+        <button type="button" id="add-save" class="btn btn-primary">Save snippet</button>
+        <button type="button" id="add-cancel" class="btn btn-ghost">Cancel</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="storage-row">
+        <span class="storage-label" id="storage-label">Storage</span>
+        <span><span id="storage-used">0</span> / <span id="storage-limit">0</span> KB</span>
+      </div>
+      <progress id="storage-bar" value="0" max="100"></progress>
+    </section>
+
+    <section class="panel search-panel">
+      <label class="search-label" for="search-input">Search snippets</label>
+      <input type="text" id="search-input" placeholder="Type to search snippets...">
+      <div id="search-status" data-state="idle"></div>
+    </section>
+
+    <section class="panel">
+      <div class="tabs" role="tablist" aria-label="Storage tabs">
+        <button type="button" class="tab-button" id="tab-local" data-area="local" role="tab">
+          Local <span class="tab-count" id="tab-count-local">0</span>
+        </button>
+        <button type="button" class="tab-button" id="tab-sync" data-area="sync" role="tab">
+          Synced <span class="tab-count" id="tab-count-sync">0</span>
+        </button>
+      </div>
+      <div class="snippets-header">
+        <div class="snippets-title" id="snippets-title">Saved</div>
+      </div>
+      <div id="snippets-list"></div>
+    </section>
+
+    <div class="hint">Tip: highlight text, right-click, and choose "Save as Snippet".</div>
+  </div>
+  <script src="../vendor/fuse.js"></script>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
