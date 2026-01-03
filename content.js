@@ -183,7 +183,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'animateSnippet') {
     const selectionPosition = lastSelectionPosition || getSelectionPosition();
     if (!selectionPosition) {
-      throw new Error('Animation requires a selection position.');
+      console.error('Animation requires a selection position.');
+      return;
     }
     createAnimationElement(request.text, selectionPosition.x, selectionPosition.y);
     lastSelectionPosition = null;

@@ -4,32 +4,16 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ["selection", "editable"],
     id: "save-snippet"
   });
-  void clearLegacyEmbeddingsStorage();
-  ensureSnippetsStorage('local');
-  ensureSnippetsStorage('sync');
-});
-
-function ensureSnippetsStorage(area) {
-  if (!chrome.storage || !chrome.storage[area]) {
-    throw new Error(`chrome.storage.${area} is not available.`);
-  }
-  chrome.storage[area].get(['snippets'], function(result) {
-    if (chrome.runtime.lastError) {
-      throw new Error(`Failed to read snippets: ${chrome.runtime.lastError.message}`);
-    }
-    if (result.snippets === undefined) {
-      chrome.storage[area].set({ snippets: [] }, function() {
-        if (chrome.runtime.lastError) {
-          throw new Error(`Failed to initialize snippets: ${chrome.runtime.lastError.message}`);
-        }
-      });
-      return;
-    }
-    if (!Array.isArray(result.snippets)) {
-      throw new Error('Snippets storage must be an array.');
-    }
+  void clearLegacyEmbeddingsStorage().catch((error) => {
+    console.error('Failed to clear legacy embeddings:', error);
   });
-}
+  void ensureSnippetsStorage('local').catch((error) => {
+    console.error('Failed to initialize local snippets:', error);
+  });
+  void ensureSnippetsStorage('sync').catch((error) => {
+    console.error('Failed to initialize synced snippets:', error);
+  });
+});
 
 const LEGACY_EMBEDDINGS_KEY = 'snippet_embeddings_v1';
 
@@ -97,6 +81,20 @@ async function setStorage(area, data) {
       resolve();
     });
   });
+}
+
+async function ensureSnippetsStorage(area) {
+  if (area !== 'local' && area !== 'sync') {
+    throw new Error(`Unsupported storage area: ${area}`);
+  }
+  const result = await getStorage(area, ['snippets']);
+  if (result.snippets === undefined) {
+    await setStorage(area, { snippets: [] });
+    return;
+  }
+  if (!Array.isArray(result.snippets)) {
+    throw new Error('Snippets storage must be an array.');
+  }
 }
 
 async function saveSnippet({ id, text, url }) {

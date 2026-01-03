@@ -144,11 +144,27 @@ function getBytesInUse(area, keys) {
   });
 }
 
+async function ensureSnippetsStorage(area) {
+  if (!STORAGE_LABELS[area]) {
+    throw new Error(`Unsupported storage area: ${area}`);
+  }
+  const result = await getStorage(area, ['snippets']);
+  if (result.snippets === undefined) {
+    await setStorage(area, { snippets: [] });
+    return;
+  }
+  if (!Array.isArray(result.snippets)) {
+    throw new Error('Snippets storage must be an array.');
+  }
+}
+
 async function clearLegacyEmbeddingsStorage() {
   await removeStorage('local', [LEGACY_EMBEDDINGS_KEY]);
 }
 
 async function loadAndDisplaySnippets() {
+  await ensureSnippetsStorage('local');
+  await ensureSnippetsStorage('sync');
   snippetsByArea.local = await loadSnippetsForArea('local');
   snippetsByArea.sync = await loadSnippetsForArea('sync');
   await ensureSnippetIds('local');
@@ -422,7 +438,7 @@ async function handleAddSnippet() {
 
 function displaySnippets(items) {
   const list = getRequiredElement('snippets-list');
-  list.innerHTML = '';
+  list.replaceChildren();
   if (items.length === 0) {
     const areaLabel = getAreaLabel(activeArea).toLowerCase();
     renderEmptyState(`No ${areaLabel} snippets yet. Save a selection to start building your vault.`);
@@ -439,28 +455,51 @@ function displaySnippets(items) {
     const div = document.createElement('div');
     div.className = 'snippet';
     div.style.setProperty('--delay', `${displayIndex * 45}ms`);
-    div.innerHTML = `
-      <div class="snippet-meta">
-        <span class="snippet-badge snippet-badge--${area}">${areaLabel}</span>
-      </div>
-      <div class="snippet-text">${snippet.text}</div>
-      <div class="snippet-actions">
-        <button type="button" id="copy-${displayIndex}" class="btn btn-primary">Copy</button>
-        <button type="button" id="move-${displayIndex}" class="btn btn-move">${moveLabel}</button>
-        <button type="button" id="delete-${displayIndex}" class="btn btn-danger">Delete</button>
-      </div>
-    `;
+
+    const meta = document.createElement('div');
+    meta.className = 'snippet-meta';
+    const badge = document.createElement('span');
+    badge.className = `snippet-badge snippet-badge--${area}`;
+    badge.textContent = areaLabel;
+    meta.appendChild(badge);
+
+    const text = document.createElement('div');
+    text.className = 'snippet-text';
+    text.textContent = snippet.text;
+
+    const actions = document.createElement('div');
+    actions.className = 'snippet-actions';
+    const copyButton = createActionButton('Copy', 'btn btn-primary');
+    const moveButton = createActionButton(moveLabel, 'btn btn-move');
+    const deleteButton = createActionButton('Delete', 'btn btn-danger');
+    actions.append(copyButton, moveButton, deleteButton);
+
+    div.append(meta, text, actions);
     list.appendChild(div);
-    getRequiredElement(`copy-${displayIndex}`).addEventListener('click', () => {
+    copyButton.addEventListener('click', () => {
       void copySnippet(area, snippet.id);
     });
-    getRequiredElement(`move-${displayIndex}`).addEventListener('click', () => {
+    moveButton.addEventListener('click', () => {
       void moveSnippet(area, snippet.id, targetArea);
     });
-    getRequiredElement(`delete-${displayIndex}`).addEventListener('click', () => {
+    deleteButton.addEventListener('click', () => {
       void deleteSnippet(area, snippet.id);
     });
   });
+}
+
+function createActionButton(label, className) {
+  if (typeof label !== 'string' || label.trim().length === 0) {
+    throw new Error('Button label is required.');
+  }
+  if (typeof className !== 'string' || className.trim().length === 0) {
+    throw new Error('Button className is required.');
+  }
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  button.textContent = label;
+  return button;
 }
 
 function renderEmptyState(message) {
@@ -468,7 +507,7 @@ function renderEmptyState(message) {
     throw new Error('Empty state message is required.');
   }
   const list = getRequiredElement('snippets-list');
-  list.innerHTML = '';
+  list.replaceChildren();
   const empty = document.createElement('div');
   empty.className = 'empty-state';
   empty.textContent = message;
