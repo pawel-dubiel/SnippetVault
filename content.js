@@ -186,7 +186,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.error('Animation requires a selection position.');
       return;
     }
-    createAnimationElement(request.text, selectionPosition.x, selectionPosition.y);
+    try {
+      createAnimationElement(request.text, selectionPosition.x, selectionPosition.y);
+    } catch (error) {
+      console.error('Animation failed:', error);
+      return;
+    }
     lastSelectionPosition = null;
   }
   if (request.action === 'getSelectedText') {

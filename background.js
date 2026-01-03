@@ -21,7 +21,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId !== "save-snippet") {
     return;
   }
-  void handleSaveSnippet(info, tab);
+  void handleSaveSnippet(info, tab).catch((error) => {
+    console.error('Failed to save snippet:', error);
+  });
 });
 
 async function handleSaveSnippet(info, tab) {

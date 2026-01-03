@@ -10,7 +10,7 @@ let addTargetArea = 'local';
 let searchToken = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-  void initialize();
+  void runWithStatus(() => initialize(), 'Failed to load snippets.');
 });
 
 async function initialize() {
@@ -28,36 +28,36 @@ async function initialize() {
   const addAreaSync = getRequiredElement('add-area-sync');
 
   clearAllButton.addEventListener('click', () => {
-    void clearAllSnippets();
+    void runWithStatus(() => clearAllSnippets(), 'Failed to clear snippets.');
   });
   searchInput.addEventListener('input', () => {
-    void filterSnippets();
+    void runWithStatus(() => filterSnippets(), 'Search failed.');
   });
   localTab.addEventListener('click', () => {
-    void setActiveArea('local');
+    void runWithStatus(() => setActiveArea('local'), 'Failed to switch storage.');
   });
   syncTab.addEventListener('click', () => {
-    void setActiveArea('sync');
+    void runWithStatus(() => setActiveArea('sync'), 'Failed to switch storage.');
   });
   addButton.addEventListener('click', () => {
-    toggleAddPanel();
+    runSafely(() => toggleAddPanel(), 'Failed to toggle add panel.');
   });
   addCancel.addEventListener('click', () => {
-    closeAddPanel();
+    runSafely(() => closeAddPanel(), 'Failed to close add panel.');
   });
   addSave.addEventListener('click', () => {
-    void handleAddSnippet();
+    void runWithStatus(() => handleAddSnippet(), 'Failed to add snippet.');
   });
   addAreaLocal.addEventListener('click', () => {
-    setAddTargetArea('local');
+    runSafely(() => setAddTargetArea('local'), 'Failed to set add target.');
   });
   addAreaSync.addEventListener('click', () => {
-    setAddTargetArea('sync');
+    runSafely(() => setAddTargetArea('sync'), 'Failed to set add target.');
   });
   addInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
-      void handleAddSnippet();
+      void runWithStatus(() => handleAddSnippet(), 'Failed to add snippet.');
     }
   });
 
@@ -76,6 +76,28 @@ function setStatus(message, state) {
   const status = getRequiredElement('search-status');
   status.textContent = message;
   status.dataset.state = state;
+}
+
+function reportError(error, fallbackMessage) {
+  const message = error instanceof Error ? error.message : fallbackMessage;
+  setStatus(message, 'error');
+  console.error(error);
+}
+
+function runSafely(action, fallbackMessage) {
+  try {
+    action();
+  } catch (error) {
+    reportError(error, fallbackMessage);
+  }
+}
+
+async function runWithStatus(action, fallbackMessage) {
+  try {
+    await action();
+  } catch (error) {
+    reportError(error, fallbackMessage);
+  }
 }
 
 function getStorage(area, keys) {
@@ -430,9 +452,7 @@ async function handleAddSnippet() {
     closeAddPanel();
     await setActiveArea(area);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to add snippet.';
-    setStatus(message, 'error');
-    throw error;
+    reportError(error, 'Failed to add snippet.');
   }
 }
 
@@ -477,13 +497,16 @@ function displaySnippets(items) {
     div.append(meta, text, actions);
     list.appendChild(div);
     copyButton.addEventListener('click', () => {
-      void copySnippet(area, snippet.id);
+      runSafely(() => copySnippet(area, snippet.id), 'Failed to copy snippet.');
     });
     moveButton.addEventListener('click', () => {
-      void moveSnippet(area, snippet.id, targetArea);
+      void runWithStatus(
+        () => moveSnippet(area, snippet.id, targetArea),
+        'Failed to move snippet.'
+      );
     });
     deleteButton.addEventListener('click', () => {
-      void deleteSnippet(area, snippet.id);
+      void runWithStatus(() => deleteSnippet(area, snippet.id), 'Failed to delete snippet.');
     });
   });
 }
@@ -543,10 +566,7 @@ async function filterSnippets() {
     if (requestId !== searchToken) {
       return;
     }
-    const message = error instanceof Error ? error.message : 'Search failed.';
-    setStatus(message, 'error');
-    console.error(error);
-    throw error;
+    reportError(error, 'Search failed.');
   }
 }
 
